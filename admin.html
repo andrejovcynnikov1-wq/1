@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ-панель FunTime</title>
+    <style>
+        body {
+            background-color: #0b0b0b;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h2 { color: #e53935; }
+        .section {
+            background: #161616;
+            border: 1px solid #333;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 8px; font-size: 14px; }
+        .chat-log {
+            background: #111;
+            height: 200px;
+            overflow-y: scroll;
+            padding: 10px;
+            border: 1px solid #333;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Панель Администратора</h2>
+
+    <div class="section">
+        <h3>Список зарегистрированных игроков и их IP:</h3>
+        <ul id="admin-players-list">
+            <li>Загрузка списка игроков...</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h3>Чаты с игроками:</h3>
+        <div class="chat-log" id="admin-chat-box">
+            Загрузка чата...
+        </div>
+    </div>
+
+    <!-- Подключаем Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // ⚠️ ВСТАВЬ ТУ ЖЕ САМУЮ ССЫЛКУ НА БАЗУ ДАННЫХ ЧТО И В INDEX.HTML ⚠️
+        const firebaseConfig = {
+            databaseURL: "ТУТ_ВСТАВЬ_ССЫЛКУ_НА_БАЗУ_ДАННЫХ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // Выводим всех игроков и их IP в реальном времени
+        onValue(ref(db, 'players'), (snapshot) => {
+            const list = document.getElementById('admin-players-list');
+            list.innerHTML = '';
+            
+            if (!snapshot.exists()) {
+                list.innerHTML = '<li>Пока нет зарегистрированных игроков.</li>';
+                return;
+            }
+
+            snapshot.forEach((child) => {
+                const p = child.val();
+                list.innerHTML += <li>Ник: <b>${p.nickname}</b> | IP: <code>${p.ip}</code> | Время: ${p.regTime || 'Неизвестно'}</li>;
+            });
+        });
+
+        // Выводим чат в реальном времени
+        onValue(ref(db, 'chats'), (snapshot) => {
+            const chatBox = document.getElementById('admin-chat-box');
+            chatBox.innerHTML = '';
+
+            if (!snapshot.exists()) {
+                chatBox.innerHTML = '<div>Сообщений пока нет.</div>';
+                return;
+            }
+
+            snapshot.forEach((child) => {
+                const msg = child.val();
+                chatBox.innerHTML += <div>[${msg.time || ''}] <b>${msg.sender}:</b> ${msg.text}</div>;
+            });
+            chatBox.scrollTop = chatBox.scrollHeight;
+        });
+    </script>
+</body>
+</html>
